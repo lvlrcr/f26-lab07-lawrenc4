@@ -17,16 +17,27 @@ Keep it short and specific. Point at methods, call sites, and test names.
 observable result it pins. Not "recurring bookings work". Green against the
 shipped code, and you did not edit or delete an existing test method to get
 there.
+- File: `BookingWorkflowTest.java`
+- Test: `OnlyRecurringBookingsTreatOverlapsAsConflicts`
 
 **Why that one, and does a shipped test already cover it?** Of everything
 `BookingWorkflow` does, why is this the behavior worth a test? If something
 shipped comes close, say what your pin adds. If nothing does, say how you
 checked.
+- Each branch of `BookingWorkflow.submit()` duplicates overlap checks,
+    but only `case RECURRING` uses `[compare bookings] <= 0` to determine
+    if a booking is taken.
+- A test `regularSubmitAcceptsASlotThatStartsWhenAnotherEnds` exists, but
+    this only checks the regular case and not the fact that this would fail
+    for recurring bookings.
 
 **What a regeneration would do differently here.** Suppose someone
 threw this class away and regenerated it from a one-line description of what a
 booking workflow does. Name the decision that would be made a second time, and
 say which way it would probably go.
+- Unless this behavior was intentional, an agent would most likely regenerate
+    such that overlaps don't count as taken, given that this was intentional
+    for regular bookings as indicated by the test.
 
 ### The directive
 

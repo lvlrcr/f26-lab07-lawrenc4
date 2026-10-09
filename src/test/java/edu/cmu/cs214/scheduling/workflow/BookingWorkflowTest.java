@@ -8,6 +8,7 @@ import edu.cmu.cs214.scheduling.domain.BookingType;
 import edu.cmu.cs214.scheduling.domain.Member;
 import edu.cmu.cs214.scheduling.domain.MembershipTier;
 import edu.cmu.cs214.scheduling.domain.Room;
+import edu.cmu.cs214.scheduling.domain.TimeSlot;
 import edu.cmu.cs214.scheduling.notify.NotificationHub;
 import edu.cmu.cs214.scheduling.pricing.PriceCalculator;
 
@@ -229,5 +230,28 @@ class BookingWorkflowTest {
 
         assertFalse(outcome.isAccepted());
         assertEquals(0, hub.getOutbox().size());
+    }
+
+    @Test
+    void OnlyRecurringBookingsTreatBackToBackSlotsAsConflicts() {
+        workflow.submit(BookingRequest.regular("C-200", "m-1", MON_9AM, MON_10AM, 4));
+
+        // A series starting exactly when the regular booking ends skips that week.
+        BookingOutcome series = workflow.submit(
+                BookingRequest.recurring("C-200", "m-2", MON_10AM, MON_11AM, 3, 6));
+
+        assertTrue(series.isAccepted());
+        assertEquals(2, series.getBooked().size());
+        assertEquals(List.of(new TimeSlot(MON_10AM, MON_11AM)), series.getSkipped());
+        assertEquals(MON_10AM.plusWeeks(1), series.getBooking().getStart());
+        assertEquals("series S-1: 2 booked, 1 skipped", series.getMessage());
+        assertEquals(3, hub.getOutbox().size());
+
+        // The same back-to-back slot is accepted as a regular booking.
+        BookingOutcome regular = workflow.submit(
+                BookingRequest.regular("C-200", "m-2", MON_10AM, MON_11AM, 4));
+
+        assertTrue(regular.isAccepted());
+        assertEquals(4, store.activeInRoom("C-200").size());
     }
 }
